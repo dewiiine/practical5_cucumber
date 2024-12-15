@@ -3,6 +3,8 @@ package driverManager;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
@@ -10,7 +12,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -35,16 +36,12 @@ public class DriverManager {
 
             if ("local".equalsIgnoreCase(driverType)) {
                 // Локальный запуск
-                System.setProperty("webdriver.chrome.driver", getChromeDriverPath());
-                ChromeOptions options = new ChromeOptions();
-                options.addArguments("--remote-allow-origins=*");
-
-                driver = new ChromeDriver(options);
+                driver = initLocalDriver(browserType);
             } else if ("remote".equalsIgnoreCase(driverType)) {
                 // Удалённый запуск через Selenoid
-                initRemoteDriver();
+                initRemoteDriver(browserType);
             } else {
-                throw new IllegalArgumentException(driverType);
+                throw new IllegalArgumentException("Неверный тип драйвера: " + driverType);
             }
 
             // Общие настройки
@@ -64,9 +61,57 @@ public class DriverManager {
             driver = null;
         }
     }
-    /**
-     * Метод для определения пути к ChromeDriver в зависимости от ОС
-     */
+
+    private static WebDriver initLocalDriver(String browserType) {
+        WebDriver localDriver;
+
+        switch (browserType.toLowerCase()) {
+            case "chrome":
+                System.setProperty("webdriver.chrome.driver", getChromeDriverPath());
+                ChromeOptions chromeOptions = new ChromeOptions();
+                chromeOptions.addArguments("--remote-allow-origins=*");
+                localDriver = new ChromeDriver(chromeOptions);
+                break;
+            case "firefox":
+                System.setProperty("webdriver.gecko.driver", getGeckoDriverPath());
+                FirefoxOptions firefoxOptions = new FirefoxOptions();
+                localDriver = new FirefoxDriver(firefoxOptions);
+                break;
+            default:
+                throw new IllegalArgumentException("Не поддерживаемый браузер: " + browserType);
+        }
+
+        return localDriver;
+    }
+
+    private static void initRemoteDriver(String browserType) {
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+
+        switch (browserType.toLowerCase()) {
+            case "chrome":
+                capabilities.setBrowserName("chrome");
+                break;
+            case "firefox":
+                capabilities.setBrowserName("firefox");
+                break;
+            default:
+                throw new IllegalArgumentException("Не поддерживаемый браузер: " + browserType);
+        }
+
+        capabilities.setCapability("browserVersion", "109.0");
+        capabilities.setCapability("enableVNC", true);
+        capabilities.setCapability("enableVideo", false);
+
+        try {
+            driver = new RemoteWebDriver(
+                    URI.create("http://jenkins.applineselenoid.fvds.ru:4444/wd/hub/").toURL(),
+                    capabilities
+            );
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static String getChromeDriverPath() {
         String os = System.getProperty("os.name").toLowerCase();
         String driverName;
@@ -83,6 +128,24 @@ public class DriverManager {
 
         return Paths.get("src", "test", "resources", driverName).toString();
     }
+
+    private static String getGeckoDriverPath() {
+        String os = System.getProperty("os.name").toLowerCase();
+        String driverName;
+
+        if (os.contains("win")) {
+            driverName = "geckodriver.exe";
+        } else if (os.contains("mac")) {
+            driverName = "geckodriver_mac";
+        } else if (os.contains("nix") || os.contains("nux")) {
+            driverName = "geckodriver_linux";
+        } else {
+            throw new RuntimeException("ОС не поддерживается: " + os);
+        }
+
+        return Paths.get("src", "test", "resources", driverName).toString();
+    }
+
 
     /**
      * Метод для инициализации удалённого WebDriver для взаимодействия с Selenoid
