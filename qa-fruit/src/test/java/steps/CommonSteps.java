@@ -27,6 +27,12 @@ public class CommonSteps {
         assertEquals("http://localhost:8080/food", driver.getCurrentUrl(), "Текущий url не совпадает с url страницы списка товаров");
     }
 
+    @И("Проверяем URL страницы 'Товары' через Selenoid")
+    public void checkUrlRemote() {
+        productListPage = new ProductListPage(driver);
+        assertEquals("https://qualit.appline.ru/food", driver.getCurrentUrl(), "Текущий url не совпадает с url страницы списка товаров");
+    }
+
     @И("Получаем количество продуктов на странице")
     public void getCountProduct() {
         productsCount = productListPage.getProducts().size();
@@ -66,6 +72,5 @@ public class CommonSteps {
     public void deleteLastAddedFood(String foodName) {
         databaseSteps.deleteLastAddedFood(foodName);
     }
-
 
 }
