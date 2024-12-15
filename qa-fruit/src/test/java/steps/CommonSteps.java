@@ -3,9 +3,16 @@ package steps;
 import database.DatabaseManager;
 import driverManager.DriverManager;
 import io.cucumber.java.ru.И;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Wait;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import pages.MainPage;
 import pages.ProductListPage;
+
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,6 +49,8 @@ public class CommonSteps {
         productListPage.selectProductType(foodType);
         productListPage.selectExotic(Boolean.parseBoolean(exotic));
         productListPage.buttonSaveClick();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        wait.until(ExpectedConditions.invisibilityOf(productListPage.getExoticCheckbox()));
 
         assertTrue(productListPage.assertNewElement(foodName, foodType, Boolean.parseBoolean(exotic)), "Последний продукт не совпадает с переданными данными");
     }
@@ -55,7 +64,34 @@ public class CommonSteps {
 
     @И("Проверяем, что количество продуктов ДО добавления равно количеству ПОСЛЕ сброса данных")
     public void checkCountProduct() {
-        assertEquals(productsCount, productListPage.getProducts().size());
+        int maxAttempts = 5; // Максимальное количество попыток
+        int attempt = 0;
+        boolean isCountCorrect = false;
+
+        while (attempt < maxAttempts) {
+            try {
+                // Попытка проверить количество продуктов
+                assertEquals(productsCount, productListPage.getProducts().size());
+                isCountCorrect = true;
+                break;  // Если проверка прошла успешно, выходим из цикла
+            } catch (AssertionError e) {
+                attempt++;
+                if (attempt >= maxAttempts) {
+                    throw new AssertionError("Количество продуктов не совпадает после " + maxAttempts + " попыток");
+                }
+                // Задержка перед следующей попыткой
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException interruptedException) {
+                    interruptedException.printStackTrace();
+                }
+            }
+        }
+
+        if (!isCountCorrect) {
+            // Если после всех попыток количество не совпало, можно выбросить ошибку
+            throw new AssertionError("Количество продуктов не соответствует ожидаемому");
+        }
     }
 
     @И("Проверяем, что количество строк с товаром {string} равно {int}")
