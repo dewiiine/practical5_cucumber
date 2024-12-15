@@ -12,11 +12,13 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CommonSteps {
     private final DatabaseManager databaseSteps = new DatabaseManager();
     private final WebDriver driver = DriverManager.getDriver();
+    private String baseUrl;
     private ProductListPage productListPage;
     private int productsCount;
 
     @И("Переходим на страницу 'Товары'")
     public void goProductListPage() {
+        baseUrl = driver.getCurrentUrl();
         MainPage mainPage = new MainPage(driver);
         mainPage.selectSandboxItem("Товары");
     }
@@ -24,13 +26,7 @@ public class CommonSteps {
     @И("Проверяем URL страницы 'Товары'")
     public void checkUrl() {
         productListPage = new ProductListPage(driver);
-        assertEquals("http://localhost:8080/food", driver.getCurrentUrl(), "Текущий url не совпадает с url страницы списка товаров");
-    }
-
-    @И("Проверяем URL страницы 'Товары' через Selenoid")
-    public void checkUrlRemote() {
-        productListPage = new ProductListPage(driver);
-        assertEquals("https://qualit.appline.ru/food", driver.getCurrentUrl(), "Текущий url не совпадает с url страницы списка товаров");
+        assertEquals(baseUrl + "food", driver.getCurrentUrl(), "Текущий url не совпадает с url страницы списка товаров");
     }
 
     @И("Получаем количество продуктов на странице")
@@ -65,6 +61,7 @@ public class CommonSteps {
     @И("Проверяем, что количество строк с товаром {string} равно {int}")
     public void assertRowsCountByFoodName(String foodName, int expectedCount) {
         assertNotNull(databaseSteps, "Database manager is not initialized");
+
         assertEquals(expectedCount, databaseSteps.getFoodCount(foodName), "Количество товаров не соответствует");
     }
 
